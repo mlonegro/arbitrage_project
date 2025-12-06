@@ -262,6 +262,30 @@ class RealFeed:
                     settlement_data = data.get('SE')
                     settlement_price = settlement_data.get('price') if isinstance(settlement_data, dict) else settlement_data
 
+                    # Enhanced fallback logic: Use settlement/closing/last price when bid/ask missing
+                    fallback_used = False
+                    if bid_price is None or ask_price is None:
+                        # Priority: SettlementPrice > ClosingPrice > Last
+                        fallback_price = None
+                        if settlement_price and settlement_price > 0:
+                            fallback_price = settlement_price
+                        elif closing_price and closing_price > 0:
+                            fallback_price = closing_price
+                        elif last_price and last_price > 0:
+                            fallback_price = last_price
+
+                        if fallback_price and fallback_price > 0:
+                            # Apply small synthetic spread to avoid bid=ask (0.01% spread)
+                            if bid_price is None:
+                                bid_price = fallback_price * 0.9999
+                                fallback_used = True
+                            if ask_price is None:
+                                ask_price = fallback_price * 1.0001
+                                fallback_used = True
+
+                    if fallback_used:
+                        print(f"⚠️ Using settlement/closing fallback for {ticker}: settlement=${settlement_price}, closing=${closing_price}, bid=${bid_price:.2f}, ask=${ask_price:.2f}")
+
                     volume = data.get('TV')
                     open_interest = data.get('OI')
 

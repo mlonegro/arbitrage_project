@@ -209,7 +209,7 @@ if snapshot and not snapshot.futures_chain.empty:
     
     # KPI Section
     # Find best opportunities avoiding NaNs
-    if not df.empty:
+    if not df.empty: 
         best_row = df.loc[df['Max_Spread_bps'].idxmax()]
 
         c1, c2, c3, c4 = st.columns(4)

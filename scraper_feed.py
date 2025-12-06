@@ -106,19 +106,37 @@ class ScraperFeed:
                 price_str = item.get('ultimo', '') or item.get('cierre', '')
                 bid_str = item.get('compra', '')
                 ask_str = item.get('venta', '')
-                
+                cierre_str = item.get('cierre', '')  # Ajuste ant. (settlement/closing price)
+
                 last = self._clean_price(price_str)
                 bid = self._clean_price(bid_str)
                 ask = self._clean_price(ask_str)
-                
-                # Gap Fill Logic
+                cierre = self._clean_price(cierre_str)  # Previous settlement price
+
+                # Enhanced Gap Fill Logic with Ajuste ant. fallback
                 if last == 0:
                     if bid > 0 and ask > 0: last = (bid + ask) / 2
                     elif ask > 0: last = ask
                     elif bid > 0: last = bid
+                    elif cierre > 0: last = cierre
 
-                if bid == 0: bid = last
-                if ask == 0: ask = last
+                # Use cierre (Ajuste ant.) as primary fallback, then last price
+                fallback_used = False
+                if bid == 0 or ask == 0:
+                    # Determine fallback price priority: cierre > last
+                    fallback_price = cierre if cierre > 0 else last
+
+                    if fallback_price > 0:
+                        # Apply small synthetic spread to avoid bid=ask (0.01% spread)
+                        if bid == 0:
+                            bid = fallback_price * 0.9999
+                            fallback_used = True
+                        if ask == 0:
+                            ask = fallback_price * 1.0001
+                            fallback_used = True
+
+                if fallback_used:
+                    print(f"⚠️ Using Ajuste ant. fallback for {name}: cierre=${cierre:.2f}, bid=${bid:.2f}, ask=${ask:.2f}")
 
                 maturity = self._parse_contract_maturity(name)
                 
