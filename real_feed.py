@@ -330,10 +330,21 @@ class RealFeed:
         try:
             # Get A-series contracts by default
             tickers = self.get_dlr_futures_tickers(limit=30, monthly_only=True, a_series_only=True)
+
+            if not tickers:
+                error_msg = "⚠️ ROFEX API connection failed or no tickers available. Consider switching to 'Ambito Scraper' data source."
+                print(error_msg)
+                raise ConnectionError(error_msg)
+
             futures_df = self.get_dlr_market_data(tickers=tickers)
 
             if futures_df.empty and use_mock_fallback:
                 return self._generate_mock_snapshot()
+
+            if futures_df.empty:
+                error_msg = "⚠️ ROFEX API returned no market data. Consider switching to 'Ambito Scraper' data source."
+                print(error_msg)
+                raise ConnectionError(error_msg)
 
             # Get real spot price from Ámbito (mayorista wholesale rate)
             spot_price = self._fetch_spot_from_ambito()
@@ -365,10 +376,11 @@ class RealFeed:
             )
 
         except Exception as e:
-            print(f"Error getting snapshot: {e}")
+            error_msg = f"❌ ROFEX API Error: {e}\n💡 Suggestion: Switch to 'Ambito Scraper' data source for a more reliable connection."
+            print(error_msg)
             if use_mock_fallback:
                 return self._generate_mock_snapshot()
-            raise
+            raise ConnectionError(error_msg)
 
     def _generate_mock_snapshot(self) -> MarketSnapshot:
         spot = 1450.50

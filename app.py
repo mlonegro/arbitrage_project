@@ -8,6 +8,7 @@ import os
 # Import classes
 try:
     from real_feed import RealFeed
+    from scraper_feed import ScraperFeed
     from market_monitor import ArbMonitor
 except ImportError as e:
     st.error(f"❌ Import Error: {e}")
@@ -115,7 +116,7 @@ with st.sidebar:
     st.header("⚙️ Configuration")
 
     # 1. Select Mode
-    env_mode = st.radio("Data Feed", ["ROFEX API (Real)", "Simulation (Mock)"])
+    env_mode = st.radio("Data Feed", ["ROFEX API (Real)", "Ambito Financiero (Diario)", "Simulation (Mock)"])
     
     st.divider()
     
@@ -131,7 +132,7 @@ with st.sidebar:
     st.subheader("Execution Simulation")
     commission = st.slider("Commission (%)", 0.0, 0.5, 0.0, 0.01)
     
-    # Only show Spread simulation if using Mock data (Ambito has real spreads)
+    # Only show Spread simulation if using Mock data (Ambito and ROFEX have real spreads)
     sim_spread = 0
     if env_mode == "Simulation (Mock)":
         sim_spread = st.slider("Simulated Spread (bps)", 0, 500, 50, 10, help="Widens the spread to simulate illiquidity.")
@@ -163,6 +164,9 @@ if env_mode == "ROFEX API (Real)":
     except Exception as e:
         st.error(f"❌ Failed to load credentials: {e}")
         st.stop()
+elif env_mode == "Ambito Financiero (Diario)":
+    # Use Ambito Financiero web scraper as fallback data source
+    current_feed = ScraperFeed()
 elif env_mode == "Simulation (Mock)":
     # We use RealFeed class just for its mock generator
     current_feed = RealFeed("dummy", "dummy", "dummy")
@@ -171,7 +175,13 @@ elif env_mode == "Simulation (Mock)":
 snapshot = None
 if current_feed:
     try:
-        spinner_text = "Connecting to ROFEX API..." if env_mode == "ROFEX API (Real)" else f"Fetching data from {env_mode}..."
+        if env_mode == "ROFEX API (Real)":
+            spinner_text = "Connecting to ROFEX API..."
+        elif env_mode == "Ambito Financiero (Diario)":
+            spinner_text = "Scraping Ambito Financiero..."
+        else:
+            spinner_text = f"Fetching data from {env_mode}..."
+
         with st.spinner(spinner_text):
             # use_mock_fallback=True allows Simulation mode to generate data
             snapshot = current_feed.get_snapshot(use_mock_fallback=(env_mode == "Simulation (Mock)"))
@@ -195,7 +205,12 @@ if current_feed:
                 snapshot.futures_chain = df
             
     except Exception as e:
-        st.error(f"Data Error: {e}")
+        error_message = str(e)
+        if "ROFEX API" in error_message or env_mode == "ROFEX API (Real)":
+            st.error(f"❌ ROFEX API Error: {error_message}")
+            st.warning("💡 **Suggestion:** Try switching to **'Ambito Financiero'** data source in the sidebar for a more reliable connection.")
+        else:
+            st.error(f"Data Error: {error_message}")
 
 # 3. Display Results
 if snapshot and not snapshot.futures_chain.empty:
