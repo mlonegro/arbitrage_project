@@ -1,76 +1,111 @@
-# 🇦🇷 Argentine Dollar Futures Arbitrage Monitor
+# Argentine Dollar Futures Arbitrage Monitor
 
-A real-time quantitative finance dashboard that identifies and visualizes arbitrage opportunities between the **Rofex Dollar Futures** curve and the **Caución Bursátil** (Repo) market.
+A quantitative finance application that identifies and analyzes arbitrage opportunities in the Argentine dollar futures market by comparing the implied devaluation rate from Rofex futures contracts against the cost of leverage in the Caución Bursátil (repo) market.
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B)
 ![Finance](https://img.shields.io/badge/Domain-Quantitative%20Finance-green)
 
-## 🚀 Project Overview
+## Overview
 
-In Argentina's high-inflation economic environment, capital controls and interest rate volatility often create distortions between the **Implied Devaluation Rate** (derived from Futures) and the **Cost of Leverage** (derived from the Repo/Caución market).
+Argentina's high-inflation environment, combined with strict capital controls and volatile interest rates, frequently creates pricing inefficiencies between the dollar futures market and the repo market. This application provides real-time analysis of these discrepancies, enabling traders to identify potential arbitrage opportunities.
 
-This tool acts as a "Trader's Dashboard" to scan the term structure for two specific arbitrage strategies:
+The system monitors the term structure of dollar futures contracts (DLR) traded on Matba Rofex and calculates implied annual rates. These rates are compared against the funding cost available in the Caución market to identify two distinct arbitrage strategies:
 
-1.  **Cash & Carry (Classic Arb):**
-    * **Strategy:** Borrow ARS (Caución) → Buy Spot USD → Sell Future USD.
-    * **Logic:** Profit generated when *Implied Yield (Bid) > Funding Cost*.
-    
-2.  **Reverse Arbitrage:**
-    * **Strategy:** Sell Spot USD → Invest ARS (Caución) → Buy Future USD.
-    * **Logic:** Profit generated when *Investment Yield > Implied Cost (Ask)*.
+**Cash & Carry Arbitrage:**
+- Borrow ARS via Caución at the funding rate
+- Purchase USD in the spot market
+- Sell USD futures contracts
+- Profit when the implied futures rate exceeds the funding cost
 
-## 🛠 Tech Stack & Architecture
+**Reverse Arbitrage:**
+- Sell USD in the spot market for ARS
+- Invest ARS via Caución at the funding rate
+- Purchase USD futures contracts
+- Profit when the funding rate exceeds the implied futures rate
 
-* **Frontend:** `Streamlit` for rapid interactive dashboarding and visualization.
-* **Data Analysis:** `Pandas` and `NumPy` for vectorized financial calculations (Implied Rates, TNA, Spreads).
-* **Visualization:** `Plotly` for interactive yield curves and spread analysis.
-* **Data Ingestion:**
-    * **API:** `pyRofex` integration for Matba Rofex (Test Environment).
-    * **Scraping:** Custom `Requests` + `JSON` parsers to ingest real-time public market data (Ámbito Financiero).
-* **Simulation Engine:** A logic layer that allows users to stress-test PnL by widening Bid/Ask spreads and increasing transaction costs.
+## Technical Architecture
 
-## ⚙️ Key Features
+**Data Layer:**
+- Primary source: pyRofex API integration with Matba Rofex (test environment)
+- Fallback source: Web scraper for Ámbito Financiero market data
+- Simulation mode: Synthetic data generator for testing and demonstrations
 
-* **Multi-Source Data Pipeline:** Robust ingestion strategy that falls back to different sources (API → Scraper → Synthetic) to ensure the dashboard never breaks during a demo.
-* **Liquidity Stress Testing:** Interactive sliders to model execution friction. Users can simulate widening spreads to see how "Paper Profits" disappear in low-liquidity scenarios.
-* **Implied Spot Indicator:** Calculates the market's "Fair Value" for Spot USD based on interest rate parity, serving as a signal for devaluation expectations.
-* **Real-Time Yield Curve:** Visual comparison of the Futures Implied Rate curve vs. the proprietary Funding Rate benchmark.
+**Processing Layer:**
+- `ArbMonitor` class: Core calculation engine for implied rates and spread analysis
+- `MarketSnapshot` dataclass: Standardized container for market state
+- Pandas/NumPy: Vectorized financial calculations (TNA, implied rates, days to maturity)
 
-## 📦 Installation & Usage
+**Presentation Layer:**
+- Streamlit framework: Interactive dashboard and real-time updates
+- Plotly: Term structure visualizations and yield curve analysis
+- Custom styling: Professional light-theme interface optimized for financial data
 
-1.  **Clone the repository:**
-    ```bash
-    git clone [https://github.com/yourusername/rofex-arb-monitor.git](https://github.com/yourusername/rofex-arb-monitor.git)
-    cd rofex-arb-monitor
-    ```
+## Key Features
 
-2.  **Install dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
+**Flexible Data Ingestion:**
+Multi-source pipeline with automatic fallback ensures data availability regardless of API status or market hours. The system gracefully handles missing bid/ask data by using settlement prices with synthetic spreads.
 
-3.  **Run the Dashboard:**
-    ```bash
-    streamlit run app.py
-    ```
+**Execution Simulation:**
+Interactive controls allow users to model real-world trading conditions by adjusting commission rates and bid/ask spreads, demonstrating how transaction costs impact theoretical arbitrage profits.
 
-4.  **Select Data Mode:**
-    * **Public Scraper:** Fetches real market data from public financial portals.
-    * **Simulation:** Generates synthetic data to demonstrate the arbitrage logic when markets are closed.
+**Implied Rate Calculation:**
+Computes annualized implied devaluation rates from futures prices using interest rate parity principles, providing insight into market expectations for currency depreciation.
 
-## 📂 Project Structure
+**Term Structure Visualization:**
+Displays the complete futures curve alongside the funding rate benchmark, making it easy to identify which maturities offer the most attractive arbitrage spreads.
 
-* `app.py`: Main dashboard entry point and UI logic.
-* `market_monitor.py`: Financial logic engine (Classes: `ArbMonitor`, `MarketSnapshot`).
-* `scraper_feed.py`: Robust data connector for public market data.
-* `real_feed.py`: Connector for the official Matba Rofex API (Test Environment).
+## Installation
 
-## ⚠️ Disclaimer
+Clone the repository:
+```bash
+git clone https://github.com/yourusername/arb-monitor.git
+cd arb-monitor
+```
 
-This software is for educational and research purposes only. It does not constitute financial advice. Market data scraping relies on third-party structures that may change without notice.
+Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+Run the application:
+```bash
+streamlit run app.py
+```
+
+## Usage
+
+1. Select a data source from the sidebar (ROFEX API, Ámbito scraper, or simulation mode)
+2. Adjust the Caución funding rate to reflect current market conditions
+3. Optionally add commission costs or spread widening to model execution friction
+4. Review the displayed metrics, yield curve, and contract table for opportunities
+5. Analyze the spread (in basis points) to identify profitable trades
+
+## Project Structure
+
+```
+├── app.py                  # Streamlit UI and main application logic
+├── market_monitor.py       # ArbMonitor class and financial calculations
+├── scraper_feed.py         # Ámbito Financiero web scraper
+├── real_feed.py            # pyRofex API integration and mock data generator
+└── requirements.txt        # Python dependencies
+```
+
+## Dependencies
+
+- `streamlit` - Web application framework
+- `pandas` - Data manipulation and analysis
+- `numpy` - Numerical computing
+- `plotly` - Interactive charting
+- `pyrofex` - Rofex API client
+- `requests` - HTTP library for web scraping
+- `lxml` - XML/HTML parsing
+
+## Disclaimer
+
+This software is provided for educational and research purposes only. It does not constitute investment advice or a recommendation to trade. Market data obtained via web scraping may be subject to terms of service restrictions and structural changes. The author assumes no liability for trading decisions made using this tool.
 
 ---
 
-**Author:** Martin Lonegro Gurfinkel  
-**Contact:** [ml5215@columbia.edu](mailto:ml5215@columbia.edu)
+**Author:** Martin Lonegro Gurfinkel
+**Contact:** ml5215@columbia.edu
